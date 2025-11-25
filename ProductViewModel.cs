@@ -14,6 +14,7 @@ namespace SimpleInventoryApp
         private string productQuantity;
         private string productSearchQuery;
         private Product selectedProduct;
+        private bool isSuggestionOpen;
         private ICollectionView productView;
 
         public ObservableCollection<Product> Products { get; set; }
@@ -24,14 +25,24 @@ namespace SimpleInventoryApp
         private void LoadSuggestions(string input)
         {
             ProductSuggestions.Clear();
-            var matches = _db.Products
+            if (!string.IsNullOrWhiteSpace(input))
+            {
+                var matches = _db.Products
                 .Where(i => i.ProductName.StartsWith(input))
                 .Select(i => i.ProductName)
                 .Take(10)
                 .ToList();
 
-            foreach (var m in matches)
-                ProductSuggestions.Add(m);
+                foreach (var m in matches)
+                    ProductSuggestions.Add(m);
+                
+                IsSuggestionOpen = true;
+            }
+            else 
+            { 
+                IsSuggestionOpen= false;
+            }
+            
         }
 
         private void AutoPopulateFields(string input)
@@ -51,7 +62,7 @@ namespace SimpleInventoryApp
             get => productName;
             set  
             { 
-                productName = value; 
+                productName = value.Trim(); 
                 OnPropertyChanged(nameof(productName));
                 LoadSuggestions(productName);
                 AutoPopulateFields(productName);
@@ -61,7 +72,7 @@ namespace SimpleInventoryApp
         public string ProductCategory
         {
             get => productCategory;
-            set { productCategory = value; OnPropertyChanged(nameof(productCategory)); }
+            set { productCategory = value.Trim(); OnPropertyChanged(nameof(productCategory)); }
         }
 
         public string ProductQuantity
@@ -85,8 +96,11 @@ namespace SimpleInventoryApp
                 if (selectedProduct != null)
                 {
                     productName = selectedProduct.ProductName;
+                    AutoPopulateFields(SelectedProduct.ProductName);
                     productCategory = selectedProduct.ProductCategory;
                     productQuantity = selectedProduct.ProductQuantity.ToString();
+                    IsSuggestionOpen = false;
+                    OnPropertyChanged(nameof(IsSuggestionOpen));
                 }
                 OnPropertyChanged(nameof(selectedProduct));
             }
@@ -96,6 +110,12 @@ namespace SimpleInventoryApp
         {
             get => productView;
             set { productView = value; OnPropertyChanged(nameof(productView)); }
+        }
+
+        public bool IsSuggestionOpen
+        {
+            get => isSuggestionOpen;
+            set { isSuggestionOpen = value; OnPropertyChanged(nameof(IsSuggestionOpen)); }
         }
 
         public ICommand AddCommand { get; }
@@ -184,11 +204,12 @@ namespace SimpleInventoryApp
 
         private bool FilterPredicate(object obj)
         {
+            
             if (obj is Product item)
             {
                 return string.IsNullOrWhiteSpace(ProductSearchQuery) ||
-                       item.ProductName.Contains(ProductSearchQuery, StringComparison.OrdinalIgnoreCase) ||
-                       item.ProductCategory.Contains(ProductSearchQuery, StringComparison.OrdinalIgnoreCase);
+                       item.ProductName.Contains(ProductSearchQuery.Trim(), StringComparison.OrdinalIgnoreCase) ||
+                       item.ProductCategory.Contains(ProductSearchQuery.Trim(), StringComparison.OrdinalIgnoreCase);
             }
             return false;
         }
