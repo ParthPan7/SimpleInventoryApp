@@ -142,8 +142,10 @@
             <Border BorderBrush="#D0D0D0" BorderThickness="1" Width="450" Height="60" CornerRadius="4" Padding="15,10" Margin="0,0,15,0" Background="White">
                 <StackPanel Orientation="Horizontal">
                     <Grid Margin="0,0,10,0">
-                        <TextBox Width="150" Height="32" Padding="8,6" Text="{Binding ProductName}" x:Name="ProductName"
-                         BorderBrush="#BDBDBD" BorderThickness="1" VerticalContentAlignment="Center"/>
+                        <ComboBox IsEditable="True" Width="150"
+                            ItemsSource="{Binding ProductSuggestions}"
+                            Text="{Binding ProductName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
                         <TextBlock IsHitTestVisible="False" Margin="10,0,0,0" Text="Product Name" Foreground="#999" VerticalAlignment="Center">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">

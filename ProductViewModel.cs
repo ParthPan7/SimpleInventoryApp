@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Data;
 using System.Windows.Input;
@@ -18,10 +19,43 @@ namespace SimpleInventoryApp
         public ObservableCollection<Product> Products { get; set; }
         public ObservableCollection<Product> FilteredProducts { get; set; }
 
+        public ObservableCollection<string> ProductSuggestions { get; set; } = new();
+
+        private void LoadSuggestions(string input)
+        {
+            ProductSuggestions.Clear();
+            var matches = _db.Products
+                .Where(i => i.ProductName.StartsWith(input))
+                .Select(i => i.ProductName)
+                .Take(10)
+                .ToList();
+
+            foreach (var m in matches)
+                ProductSuggestions.Add(m);
+        }
+
+        private void AutoPopulateFields(string input)
+        {
+            var existing = _db.Products
+                .FirstOrDefault(i => i.ProductName == input);
+
+            if (existing != null)
+            {
+                ProductCategory = existing.ProductCategory;
+                ProductQuantity = existing.ProductQuantity.ToString();
+            }
+        }
+
         public string ProductName
         {
             get => productName;
-            set  { productName = value; OnPropertyChanged(nameof(productName)); }
+            set  
+            { 
+                productName = value; 
+                OnPropertyChanged(nameof(productName));
+                LoadSuggestions(productName);
+                AutoPopulateFields(productName);
+            }
         }
 
         public string ProductCategory
