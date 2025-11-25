@@ -1,19 +1,13 @@
-﻿using SimpleInventoryApp;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Xml.Linq;
 
 namespace SimpleInventoryApp
 {
     public class ProductViewModel : INotifyPropertyChanged
     {
+        private readonly ProductDbContext _db;
         private string productName;
         private string productCategory;
         private string productQuantity;
@@ -78,7 +72,10 @@ namespace SimpleInventoryApp
 
         public ProductViewModel()
         {
-            Products = new ObservableCollection<Product>();
+            _db = new ProductDbContext();
+            _db.Database.EnsureCreated();
+
+            Products = new ObservableCollection<Product>(_db.Products.ToList());
             FilteredProducts = new ObservableCollection<Product>();
             AddCommand = new DelegateCmd(_ => AddItem());
             EditCommand = new DelegateCmd(_ => EditItem(), _ => SelectedProduct != null);
@@ -97,7 +94,17 @@ namespace SimpleInventoryApp
         {
             if (int.TryParse(ProductQuantity, out int quantity))
             {
+                bool recordExists = _db.Products
+            .Any(i => i.ProductName == ProductName);
+
+                if (recordExists)
+                {
+                    return;
+                }
+
                 var item = new Product { ProductName = ProductName, ProductCategory = ProductCategory, ProductQuantity = quantity };
+                _db.Products.Add(item);
+                _db.SaveChanges();
                 Products.Add(item);
                 ClearInputs();
             }
@@ -110,6 +117,8 @@ namespace SimpleInventoryApp
                 SelectedProduct.ProductName = ProductName;
                 SelectedProduct.ProductCategory = ProductCategory;
                 SelectedProduct.ProductQuantity = quantity;
+                _db.Products.Update(SelectedProduct);
+                _db.SaveChanges();
                 FilterProducts();
                 ClearInputs();
             }
@@ -119,6 +128,8 @@ namespace SimpleInventoryApp
         {
             if (SelectedProduct != null)
             {
+                _db.Products.Remove(SelectedProduct);
+                _db.SaveChanges();
                 Products.Remove(SelectedProduct);
                 FilterProducts();
                 ClearInputs();
@@ -150,9 +161,5 @@ namespace SimpleInventoryApp
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-        private void PerformClearSearch(object commandParameter)
-        {
-        }
     }
 }
