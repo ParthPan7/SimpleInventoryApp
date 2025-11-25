@@ -1,6 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 
@@ -16,6 +19,7 @@ namespace SimpleInventoryApp
         private Product selectedProduct;
         private bool isSuggestionOpen;
         private ICollectionView productView;
+        private IDialogMessageService dialogMessageService;
 
         public ObservableCollection<Product> Products { get; set; }
         public ObservableCollection<Product> FilteredProducts { get; set; }
@@ -57,6 +61,7 @@ namespace SimpleInventoryApp
             }
         }
 
+        [Required]
         public string ProductName
         {
             get => productName;
@@ -75,6 +80,7 @@ namespace SimpleInventoryApp
             set { productCategory = value.Trim(); OnPropertyChanged(nameof(productCategory)); }
         }
 
+        [Range(0, int.MaxValue)]
         public string ProductQuantity
         {
             get => productQuantity;
@@ -137,6 +143,7 @@ namespace SimpleInventoryApp
             ClearSearchCommand = new DelegateCmd(_ => ClearSearchQuery());
             ProductView = CollectionViewSource.GetDefaultView(Products);
             ProductView.Filter = FilterPredicate;
+            dialogMessageService = new DialogMessageService();
         }
 
         private void ClearSearchQuery()
@@ -153,12 +160,45 @@ namespace SimpleInventoryApp
 
                 if (recordExists)
                 {
+                    dialogMessageService.Show("Item Already Exist in a record (Can't be added, Try Editing)","Duplicate Entry");
                     return;
                 }
 
                 var item = new Product { ProductName = ProductName, ProductCategory = ProductCategory, ProductQuantity = quantity };
-                _db.Products.Add(item);
-                _db.SaveChanges();
+                try 
+                {
+                    _db.Products.Add(item);
+                    _db.SaveChanges();
+                } 
+                catch (DbUpdateException ex) 
+                {
+                    if (ex.InnerException is SqlException sqlEx)
+                    {
+                        switch (sqlEx.Number)
+                        {
+                            case 2601: // Duplicate key row
+                                dialogMessageService.Show("Item can't be added. It already exists.",
+                                                "Duplicate Item");
+                                break;
+
+                            case 547: // Foreign key violation
+                                dialogMessageService.Show("Invalid category reference. Please select a valid category.",
+                                                "Constraint Error");
+                                break;
+
+                            case 515: // Not Null violation
+                                dialogMessageService.Show("Required fields are missing. Please fill all mandatory fields.",
+                                                "Constraint Error");
+                                break;
+
+                            default:
+                                dialogMessageService.Show("Database error: " + sqlEx.Message,
+                                                "Error");
+                                break;
+                        }
+                    }
+                }
+                
                 Products.Add(item);
                 ClearInputs();
             }
