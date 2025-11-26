@@ -3,13 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Windows;
+using System.Text.RegularExpressions;
 using System.Windows.Data;
 using System.Windows.Input;
 
 namespace SimpleInventoryApp
 {
-    public class ProductViewModel : INotifyPropertyChanged
+    public class ProductViewModel : INotifyPropertyChanged, IDataErrorInfo
     {
         private readonly ProductDbContext _db;
         private string productName;
@@ -74,6 +74,7 @@ namespace SimpleInventoryApp
             }
         }
 
+        [Required]
         public string ProductCategory
         {
             get => productCategory;
@@ -101,14 +102,14 @@ namespace SimpleInventoryApp
                 selectedProduct = value;
                 if (selectedProduct != null)
                 {
-                    productName = selectedProduct.ProductName;
+                    ProductName = selectedProduct.ProductName;
                     AutoPopulateFields(SelectedProduct.ProductName);
-                    productCategory = selectedProduct.ProductCategory;
-                    productQuantity = selectedProduct.ProductQuantity.ToString();
+                    ProductCategory = selectedProduct.ProductCategory;
+                    ProductQuantity = selectedProduct.ProductQuantity.ToString();
                     IsSuggestionOpen = false;
                     OnPropertyChanged(nameof(IsSuggestionOpen));
                 }
-                OnPropertyChanged(nameof(selectedProduct));
+                OnPropertyChanged(nameof(SelectedProduct));
             }
         }
 
@@ -129,6 +130,8 @@ namespace SimpleInventoryApp
         public ICommand DeleteCommand { get; }
 
         public ICommand ClearSearchCommand {  get; }
+
+        public string Error => throw new NotImplementedException();
 
         public ProductViewModel()
         {
@@ -256,5 +259,48 @@ namespace SimpleInventoryApp
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        public string this[string columnName]
+        {
+            get
+            {
+                switch (columnName)
+                {
+                    case nameof(ProductName):
+                        if (string.IsNullOrWhiteSpace(ProductName))
+                            return null;
+                        if (ProductName.Length < 3)
+                            return "Product name must be at least 3 characters.";
+                        if (ProductName.Length > 50)
+                            return "Product name cannot exceed 50 characters.";
+                        if (!Regex.IsMatch(ProductName, @"^[a-zA-Z0-9\s\-]+$"))
+                            return "Product name can only contain letters, numbers, spaces, or dashes.";
+                        break;
+
+                    case nameof(ProductCategory):
+                        if (string.IsNullOrWhiteSpace(ProductCategory))
+                            return null;
+                        if (ProductCategory.Length < 3)
+                            return "Category must be at least 3 characters.";
+                        if (ProductCategory.Length > 30)
+                            return "Category cannot exceed 30 characters.";
+                        if (!Regex.IsMatch(ProductCategory, @"^[a-zA-Z0-9\s\-]+$"))
+                            return "Category can only contain letters, numbers, spaces, or dashes.";
+                        break;
+
+                    case nameof(ProductQuantity):
+                        if (string.IsNullOrWhiteSpace(ProductQuantity))
+                            return null;
+                        if (!int.TryParse(ProductQuantity, out var qty))
+                            return "Quantity must be a valid integer.";
+                        if (qty < 0)
+                            return "Quantity must be a non-negative number.";
+                        break;
+                }
+                return null;
+            }
+        }
+
+
     }
 }

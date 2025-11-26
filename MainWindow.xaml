@@ -23,7 +23,65 @@
                   VerticalAlignment="Center"/>
             </Grid>
         </ControlTemplate>
+        <!-- Simple error template -->
+        <!-- <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="Validation.ErrorTemplate">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <DockPanel LastChildFill="True">
+                            <Border BorderBrush="Red" BorderThickness="1">
+                                <AdornedElementPlaceholder/>
+                            </Border>
+                            <TextBlock Foreground="Red"
+                                       Margin="0,4,0,0"
+                                       Text="{Binding [0].ErrorContent}"/>
+                        </DockPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style> -->
+        <Style TargetType="TextBox">
+            <Setter Property="Validation.ErrorTemplate">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <StackPanel>
+                            <Border BorderBrush="Red" BorderThickness="1">
+                                <AdornedElementPlaceholder/>
+                            </Border>
+                            <TextBlock Foreground="Red"
+                               FontSize="10"
+                               Margin="2,2,0,0"
+                               Text="{Binding [0].ErrorContent}"/>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- ComboBox Style with Validation -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#3A3A3A"/>
+            <Setter Property="Foreground" Value="#D4C5A9"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
+            <Setter Property="BorderThickness" Value="1"/>
 
+            <!-- Validation error template for ComboBox -->
+            <Setter Property="Validation.ErrorTemplate">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <StackPanel>
+                            <Border BorderBrush="Red" BorderThickness="2">
+                                <AdornedElementPlaceholder/>
+                            </Border>
+                            <TextBlock Foreground="Red"
+                                   FontSize="10"
+                                   Margin="2,2,0,0"
+                                   Text="{Binding [0].ErrorContent}"/>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Window.Background>
@@ -32,7 +90,7 @@
     <Window.DataContext>
         <local:ProductViewModel/>
     </Window.DataContext>
-
+    
     <DockPanel Margin="10">
 
         <!-- Search Box -->
@@ -88,42 +146,41 @@
 
             <!-- Clear Button -->
             <Button x:Name="ClearButton"
-            Grid.Column="2"
-            Content="✕"
-            Width="20" Height="20"
-            Margin="5,0,5,0"
-            BorderThickness="0"
-            Background="Transparent"
-            Foreground="#B0B0B0"
-            Cursor="Hand"
-            FontSize="12"
-            Command="{Binding ClearSearchCommand}">
+        Grid.Column="2"
+        Content="✕"
+        Width="20" Height="20"
+        Margin="5,0,5,0"
+        BorderThickness="0"
+        Background="Transparent"
+        Foreground="#B0B0B0"
+        Cursor="Hand"
+        FontSize="12"
+        Command="{Binding ClearSearchCommand}">
+
                 <Button.Style>
                     <Style TargetType="Button">
                         <Setter Property="Visibility" Value="Collapsed"/>
+
                         <Style.Triggers>
-                            <!-- Show button when search box has text -->
-                            <DataTrigger Binding="{Binding ElementName=SearchBox, Path=Text.Length}" Value="0">
+
+                            <!-- Hide when SearchBox is empty -->
+                            <DataTrigger Binding="{Binding ElementName=SearchBox, Path=Text.Length}"
+                             Value="0">
                                 <Setter Property="Visibility" Value="Collapsed"/>
                             </DataTrigger>
-                            <DataTrigger Binding="{Binding ElementName=SearchBox, Path=Text.Length}" Value="1">
+
+                            <!-- Show when SearchBox has text -->
+                            <DataTrigger Binding="{Binding ElementName=SearchBox, Path=Text.Length}">
                                 <Setter Property="Visibility" Value="Visible"/>
                             </DataTrigger>
 
-                            <!-- Or simply -->
-                            <DataTrigger Binding="{Binding ElementName=SearchBox, Path=Text.Length}" Value="">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                            </DataTrigger>
-                            <MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding ElementName=SearchBox, Path=Text.Length}" Value="0"/>
-                                </MultiDataTrigger.Conditions>
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                            </MultiDataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
+
             </Button>
+
+
         </Grid>
 
 
@@ -240,43 +297,24 @@
         </DataGrid>
 
         <!-- Input Section -->
-        <StackPanel DockPanel.Dock="Bottom" Width="750" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,20,0,10">
+        <!-- Input and Action Section -->
+        <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Center" Margin="0,20,0,10">
 
             <!-- Input Fields Section -->
-            <Border BorderBrush="#505050" BorderThickness="1" Width="450" Height="60" CornerRadius="4" Padding="15,10" Margin="0,0,15,0" Background="#3A3A3A">
-                <StackPanel Orientation="Horizontal">
-                    <Grid Margin="0,0,10,0">
-                        <!--<ComboBox IsEditable="True" Width="150" Height="32"
-                                  ItemsSource="{Binding ProductSuggestions}"
-                                  Text="{Binding ProductName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  Background="#3A3A3A"
-                                  Foreground="#D4C5A9"
-                                  BorderBrush="#555555"
-                                  BorderThickness="1"/> 
-
-                        <TextBlock IsHitTestVisible="False" Margin="10,0,0,0" Text="Product Name" Foreground="#707070" VerticalAlignment="Center">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ProductName.Length}" Value="0">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock> -->
+            <Border BorderBrush="#505050" BorderThickness="1" Width="400" CornerRadius="4" Padding="20" Background="#3A3A3A">
+                <StackPanel>
+                    <!-- Product Name -->
+                    <Grid Margin="0,0,0,15">
                         <ComboBox IsEditable="True"
-          Width="170" Height="32"
-          ItemsSource="{Binding ProductSuggestions}"
-          Text="{Binding ProductName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-          Background="#3A3A3A"
-          Foreground="#D4C5A9"
-          BorderBrush="#555"
-          BorderThickness="1">
+                         Height="32"
+                         ItemsSource="{Binding ProductSuggestions}"
+                         Text="{Binding ProductName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                         Background="#3A3A3A"
+                         Foreground="#D4C5A9"
+                         BorderBrush="#555"
+                         BorderThickness="1">
 
                             <ComboBox.Resources>
-                                <!-- Style for editable PART_EditableTextBox -->
                                 <Style TargetType="TextBox" x:Key="EditableTextBoxStyle">
                                     <Setter Property="Background" Value="#3A3A3A"/>
                                     <Setter Property="Foreground" Value="#D4C5A9"/>
@@ -294,52 +332,59 @@
                                             <ColumnDefinition Width="30"/>
                                         </Grid.ColumnDefinitions>
 
-                                        <!-- Editable Text Area -->
                                         <Border Background="#3A3A3A"
-                        BorderBrush="#555"
-                        BorderThickness="1"
-                        CornerRadius="3"
-                        Grid.ColumnSpan="2"/>
+                                        BorderBrush="#555"
+                                        BorderThickness="1"
+                                        CornerRadius="3"
+                                        Grid.ColumnSpan="2"/>
 
                                         <TextBox x:Name="PART_EditableTextBox"
-                         Style="{StaticResource EditableTextBoxStyle}"
-                         HorizontalAlignment="Stretch"
-                         VerticalAlignment="Center"/>
+                                         Style="{StaticResource EditableTextBoxStyle}"
+                                         HorizontalAlignment="Stretch"
+                                         VerticalAlignment="Center"/>
 
-                                        <!-- Toggle Button (arrow) -->
                                         <ToggleButton Grid.Column="1"
-                              Template="{StaticResource DarkComboBoxToggleButton}"
-                              Background="Transparent"
-                              BorderThickness="0"
-                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                              Template="{StaticResource DarkComboBoxToggleButton}"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
 
-                                        <!-- Popup -->
                                         <Popup x:Name="Popup"
-                       Placement="Bottom"
-                       IsOpen="{TemplateBinding IsDropDownOpen}"
-                       AllowsTransparency="True"
-                       Focusable="False">
-
+                                       Placement="Bottom"
+                                       IsOpen="{TemplateBinding IsDropDownOpen}"
+                                       AllowsTransparency="True"
+                                       Focusable="False">
                                             <Border Background="#3A3A3A" BorderBrush="#555" BorderThickness="1">
                                                 <ScrollViewer>
                                                     <ItemsPresenter/>
                                                 </ScrollViewer>
                                             </Border>
-
                                         </Popup>
-
                                     </Grid>
                                 </ControlTemplate>
                             </ComboBox.Template>
-
                         </ComboBox>
 
+                        <!-- Placeholder -->
+                        <TextBlock IsHitTestVisible="False" Margin="10,0,0,0" Text="Product Name" Foreground="#707070" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ProductName.Length}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                     </Grid>
 
-                    <Grid Margin="0,0,10,0">
-                        <TextBox Width="120" Height="32" Padding="8,6" Text="{Binding ProductCategory}" x:Name="ProductCategory"
-                                 BorderBrush="#555555" BorderThickness="1" VerticalContentAlignment="Center"
-                                 Background="#3A3A3A" Foreground="#D4C5A9" CaretBrush="#D4C5A9"/>
+                    <!-- Category -->
+                    <Grid Margin="0,0,0,15">
+                        <TextBox Height="32" Padding="8,6" Text="{Binding ProductCategory, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" x:Name="ProductCategory"
+                         BorderBrush="#555555" BorderThickness="1" VerticalContentAlignment="Center"
+                         Background="#3A3A3A" Foreground="#D4C5A9" CaretBrush="#D4C5A9"/>
                         <TextBlock IsHitTestVisible="False" Margin="10,0,0,0" Text="Category" Foreground="#707070" VerticalAlignment="Center">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
@@ -354,10 +399,13 @@
                         </TextBlock>
                     </Grid>
 
-                    <Grid>
-                        <TextBox Width="80" Height="32" Padding="8,6" Text="{Binding ProductQuantity}" x:Name="ProductQuantity"
-                                 BorderBrush="#555555" BorderThickness="1" VerticalContentAlignment="Center"
-                                 Background="#3A3A3A" Foreground="#D4C5A9" CaretBrush="#D4C5A9"/>
+                    <!-- Quantity -->
+                    <Grid Margin="0,0,0,5">
+                        <TextBox Height="32" Padding="8,6" 
+                         Text="{Binding ProductQuantity, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" 
+                         x:Name="ProductQuantity"
+                         BorderBrush="#555555" BorderThickness="1" VerticalContentAlignment="Center"
+                         Background="#3A3A3A" Foreground="#D4C5A9" CaretBrush="#D4C5A9"/>
                         <TextBlock IsHitTestVisible="False" Margin="10,0,0,0" Text="Quantity" Foreground="#707070" VerticalAlignment="Center">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
@@ -375,17 +423,17 @@
             </Border>
 
             <!-- Action Buttons Section -->
-            <StackPanel Orientation="Horizontal">
-                <Button Content="Add" Width="70" Height="32" Margin="0,0,8,0" Command="{Binding AddCommand}"
-                        Background="#5A5A5A" Foreground="#D4C5A9" BorderThickness="0" Cursor="Hand" FontWeight="SemiBold">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
+                <Button Content="Add" Width="120" Height="36" Margin="0,0,10,0" Command="{Binding AddCommand}"
+                Background="#5A5A5A" Foreground="#D4C5A9" BorderThickness="0" Cursor="Hand" FontWeight="SemiBold">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
                                         <Border Background="{TemplateBinding Background}" 
-                                                CornerRadius="4" 
-                                                BorderThickness="0">
+                                        CornerRadius="4" 
+                                        BorderThickness="0">
                                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                     </ControlTemplate>
@@ -403,16 +451,16 @@
                     </Button.Style>
                 </Button>
 
-                <Button Content="Edit" Width="70" Height="32" Margin="0,0,8,0" Command="{Binding EditCommand}"
-                        Background="#5A5A5A" Foreground="#D4C5A9" BorderThickness="0" Cursor="Hand" FontWeight="SemiBold">
+                <Button Content="Edit" Width="120" Height="36" Margin="0,0,10,0" Command="{Binding EditCommand}"
+                Background="#5A5A5A" Foreground="#D4C5A9" BorderThickness="0" Cursor="Hand" FontWeight="SemiBold">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
                                         <Border Background="{TemplateBinding Background}" 
-                                                CornerRadius="4" 
-                                                BorderThickness="0">
+                                        CornerRadius="4" 
+                                        BorderThickness="0">
                                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                     </ControlTemplate>
@@ -430,16 +478,16 @@
                     </Button.Style>
                 </Button>
 
-                <Button Content="Delete" Width="70" Height="32" Command="{Binding DeleteCommand}"
-                        Background="#5A5A5A" Foreground="#D4C5A9" BorderThickness="0" Cursor="Hand" FontWeight="SemiBold">
+                <Button Content="Delete" Width="120" Height="36" Command="{Binding DeleteCommand}"
+                Background="#5A5A5A" Foreground="#D4C5A9" BorderThickness="0" Cursor="Hand" FontWeight="SemiBold">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="Button">
                                         <Border Background="{TemplateBinding Background}" 
-                                                CornerRadius="4" 
-                                                BorderThickness="0">
+                                        CornerRadius="4" 
+                                        BorderThickness="0">
                                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Border>
                                     </ControlTemplate>
@@ -459,7 +507,6 @@
             </StackPanel>
 
         </StackPanel>
-
     </DockPanel>
 
 </Window>
