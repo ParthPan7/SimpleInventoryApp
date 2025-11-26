@@ -6,8 +6,19 @@ namespace SimpleInventoryApp
     {
         public DbSet<Product> Products { get; set; }
 
+        public ProductDbContext()
+        {
+
+        }
+
+        public ProductDbContext(DbContextOptions<ProductDbContext> options)
+            : base(options)
+        {
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            if(optionsBuilder.IsConfigured == true) { return; }
             optionsBuilder.UseSqlServer(
                 "Server=localhost,1433;Database=ProductInventoryDB;User Id=sa;Password=YourStrong!Passw0rd;Encrypt=True;TrustServerCertificate=True;");
         }
