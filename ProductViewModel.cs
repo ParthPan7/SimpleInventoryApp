@@ -9,11 +9,14 @@ using System.Windows.Input;
 
 namespace SimpleInventoryApp
 {
-    public class ProductViewModel : INotifyPropertyChanged, IDataErrorInfo
+    public class ProductViewModel : INotifyPropertyChanged ,IDataErrorInfo
     {
         private readonly ProductDbContext _db;
         private string productName;
+        private bool productNameActivated;
         private string productCategory;
+        private bool productCategoryActivated;
+        private bool productQuantityActivated;
         private string productQuantity;
         private string productSearchQuery;
         private Product selectedProduct;
@@ -67,10 +70,11 @@ namespace SimpleInventoryApp
             get => productName;
             set  
             { 
-                productName = value.Trim(); 
-                OnPropertyChanged(nameof(productName));
+                productName = string.IsNullOrWhiteSpace(value) ? null : value; 
+                OnPropertyChanged(nameof(ProductName));
                 LoadSuggestions(productName);
                 AutoPopulateFields(productName);
+                productNameActivated = true;
             }
         }
 
@@ -78,20 +82,30 @@ namespace SimpleInventoryApp
         public string ProductCategory
         {
             get => productCategory;
-            set { productCategory = value.Trim(); OnPropertyChanged(nameof(productCategory)); }
+            set 
+            { 
+                productCategory = string.IsNullOrWhiteSpace(value) ? null:value; 
+                OnPropertyChanged(nameof(ProductCategory));
+                productCategoryActivated = true;
+            }
         }
 
         [Range(0, int.MaxValue)]
         public string ProductQuantity
         {
             get => productQuantity;
-            set { productQuantity = value; OnPropertyChanged(nameof(productQuantity)); }
+            set 
+            { 
+                productQuantity = string.IsNullOrWhiteSpace(value) ? null : value; 
+                OnPropertyChanged(nameof(ProductQuantity));
+                productQuantityActivated = true;
+            }
         }
 
         public string ProductSearchQuery
         {
             get => productSearchQuery;
-            set { productSearchQuery = value; OnPropertyChanged(nameof(productSearchQuery)); FilterProducts();  }
+            set { productSearchQuery = value; OnPropertyChanged(nameof(ProductSearchQuery)); FilterProducts();  }
         }
 
         public Product SelectedProduct
@@ -167,11 +181,13 @@ namespace SimpleInventoryApp
                     return;
                 }
 
-                var item = new Product { ProductName = ProductName, ProductCategory = ProductCategory, ProductQuantity = quantity };
+                var item = new Product { ProductName = ProductName?.Trim(), ProductCategory = ProductCategory?.Trim(), ProductQuantity = quantity };
                 try 
                 {
                     _db.Products.Add(item);
                     _db.SaveChanges();
+                    Products.Add(item);
+                    ClearInputs();
                 } 
                 catch (DbUpdateException ex) 
                 {
@@ -201,23 +217,68 @@ namespace SimpleInventoryApp
                         }
                     }
                 }
-                
-                Products.Add(item);
-                ClearInputs();
+                   
             }
+            
         }
 
         private void EditItem()
         {
-            if (SelectedProduct != null && int.TryParse(ProductQuantity, out int quantity))
+            if (SelectedProduct == null)
             {
-                SelectedProduct.ProductName = ProductName;
-                SelectedProduct.ProductCategory = ProductCategory;
-                SelectedProduct.ProductQuantity = quantity;
+                dialogMessageService.Show("No product selected", "Validation Error");
+                return;
+            }
+
+            if (!int.TryParse(ProductQuantity, out int quantity))
+            {
+                dialogMessageService.Show("Valid quantity is required", "Validation Error");
+                return;
+            }
+
+            SelectedProduct.ProductName = ProductName?.Trim();
+            SelectedProduct.ProductCategory = ProductCategory?.Trim();
+            SelectedProduct.ProductQuantity = quantity;
+
+            try
+            {
                 _db.Products.Update(SelectedProduct);
                 _db.SaveChanges();
                 FilterProducts();
                 ClearInputs();
+            }
+            catch (DbUpdateException ex)
+            {
+                if (ex.InnerException is SqlException sqlEx)
+                {
+                    switch (sqlEx.Number)
+                    {
+                        case 2601: 
+                        case 2627: 
+                            dialogMessageService.Show("Item can't be updated. A product with this name already exists.", "Duplicate Item");
+                            break;
+
+                        case 547: 
+                            dialogMessageService.Show("Invalid category reference. Please select a valid category.", "Constraint Error");
+                            break;
+
+                        case 515: 
+                            dialogMessageService.Show("Required fields are missing. Please fill all mandatory fields.", "Not Null Constraint");
+                            break;
+
+                        default:
+                            dialogMessageService.Show($"Database error (Code {sqlEx.Number}): {sqlEx.Message}", "Error");
+                            break;
+                    }
+                }
+                else
+                {
+                    dialogMessageService.Show($"Error: {ex.Message}", "Error");
+                }
+
+                var entry = _db.Entry(SelectedProduct);
+                entry.Reload();
+                OnPropertyChanged(nameof(SelectedProduct));
             }
         }
 
@@ -243,6 +304,12 @@ namespace SimpleInventoryApp
             ProductName = string.Empty;
             ProductCategory = string.Empty;
             ProductQuantity = string.Empty;
+            productNameActivated = false;
+            productCategoryActivated = false;
+            productQuantityActivated = false;
+            OnPropertyChanged(nameof(ProductName));
+            OnPropertyChanged(nameof(ProductCategory));
+            OnPropertyChanged(nameof(ProductQuantity));
         }
 
         private bool FilterPredicate(object obj)
@@ -267,8 +334,10 @@ namespace SimpleInventoryApp
                 switch (columnName)
                 {
                     case nameof(ProductName):
-                        if (string.IsNullOrWhiteSpace(ProductName))
+                        if (!productNameActivated)
                             return null;
+                        if (string.IsNullOrWhiteSpace(ProductName))
+                            return "Product name can't be empty";
                         if (ProductName.Length < 3)
                             return "Product name must be at least 3 characters.";
                         if (ProductName.Length > 50)
@@ -278,8 +347,10 @@ namespace SimpleInventoryApp
                         break;
 
                     case nameof(ProductCategory):
-                        if (string.IsNullOrWhiteSpace(ProductCategory))
+                        if (!productCategoryActivated)
                             return null;
+                        if (string.IsNullOrWhiteSpace(ProductCategory))
+                            return "Product Category can't be empty";
                         if (ProductCategory.Length < 3)
                             return "Category must be at least 3 characters.";
                         if (ProductCategory.Length > 30)
@@ -289,8 +360,10 @@ namespace SimpleInventoryApp
                         break;
 
                     case nameof(ProductQuantity):
-                        if (string.IsNullOrWhiteSpace(ProductQuantity))
+                        if (!productQuantityActivated)
                             return null;
+                        if (string.IsNullOrWhiteSpace(ProductQuantity))
+                            return "Valid product quantity is required";
                         if (!int.TryParse(ProductQuantity, out var qty))
                             return "Quantity must be a valid integer.";
                         if (qty < 0)

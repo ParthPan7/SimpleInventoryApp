@@ -17,6 +17,15 @@ namespace SimpleInventoryApp
             modelBuilder.Entity<Product>()
                 .HasIndex(i => new { i.ProductName })
                 .IsUnique();
+
+            modelBuilder.Entity<Product>()
+              .Property(p => p.ProductName)
+              .IsRequired();
+
+            modelBuilder.Entity<Product>()
+                .Property(p => p.ProductCategory)
+                .IsRequired();
+
         }
 
     }
