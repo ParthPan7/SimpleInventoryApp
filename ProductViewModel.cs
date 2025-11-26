@@ -147,6 +147,22 @@ namespace SimpleInventoryApp
 
         public string Error => throw new NotImplementedException();
 
+        public ProductViewModel(ProductDbContext? dbContext = null)
+        {
+            _db = dbContext ?? new ProductDbContext();
+            _db.Database.EnsureCreated();
+
+            Products = new ObservableCollection<Product>(_db.Products.ToList());
+            FilteredProducts = new ObservableCollection<Product>();
+            AddCommand = new DelegateCmd(_ => AddItem());
+            EditCommand = new DelegateCmd(_ => EditItem(), _ => SelectedProduct != null);
+            DeleteCommand = new DelegateCmd(_ => DeleteItem(), _ => SelectedProduct != null);
+            ClearSearchCommand = new DelegateCmd(_ => ClearSearchQuery());
+            ProductView = CollectionViewSource.GetDefaultView(Products);
+            ProductView.Filter = FilterPredicate;
+            dialogMessageService = new DialogMessageService();
+        }
+
         public ProductViewModel()
         {
             _db = new ProductDbContext();
